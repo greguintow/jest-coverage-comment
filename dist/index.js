@@ -369,28 +369,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createComment = exports.deleteOldComments = void 0;
+exports.createComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const MAX_COMMENT_LENGTH = 65536;
 const REQUESTED_COMMENTS_PER_PAGE = 20;
-async function deleteOldComments(github, options) {
-    const existingComments = await getExistingComments(github, options);
-    for (const comment of existingComments) {
-        core.debug(`Deleting comment: ${comment.id}`);
-        try {
-            await github.rest.issues.deleteComment({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                comment_id: comment.id,
-            });
-        }
-        catch (error) {
-            core.warning(`Failed to delete comment: ${comment.id}. ${error.message}`);
-        }
-    }
-}
-exports.deleteOldComments = deleteOldComments;
 async function getExistingComments(github, options) {
     let page = 0;
     let results = [];
@@ -408,6 +391,22 @@ async function getExistingComments(github, options) {
     } while (response.data.length === REQUESTED_COMMENTS_PER_PAGE);
     return results.filter((comment) => comment.user?.login === 'github-actions[bot]' &&
         comment.body?.startsWith(options.watermark));
+}
+async function deleteOldComments(github, options) {
+    const existingComments = await getExistingComments(github, options);
+    for (const comment of existingComments) {
+        core.debug(`Deleting comment: ${comment.id}`);
+        try {
+            await github.rest.issues.deleteComment({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                comment_id: comment.id,
+            });
+        }
+        catch (error) {
+            core.warning(`Failed to delete comment: ${comment.id}. ${error.message}`);
+        }
+    }
 }
 async function createComment(options, body) {
     try {
@@ -445,11 +444,11 @@ async function createComment(options, body) {
         else if (eventName === 'pull_request' ||
             eventName === 'pull_request_target') {
             if (options.createNewComment) {
-                core.info('Creating a new comment');
                 if (options.deleteOldComments) {
                     core.info('Deleting old comments');
                     await deleteOldComments(octokit, options);
                 }
+                core.info('Creating a new comment');
                 await octokit.rest.issues.createComment({
                     repo,
                     owner,
@@ -503,6 +502,118 @@ exports.createComment = createComment;
 
 /***/ }),
 
+/***/ 4414:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getFailedTestsReport = exports.getFailureDetails = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const strip_ansi_1 = __importDefault(__nccwpck_require__(5591));
+const utils_1 = __nccwpck_require__(918);
+function createMarkdownSpoiler({ body, summary, tag = 'b', }) {
+    return `
+<details><summary><${tag}>${summary}</${tag}></summary>
+<br/>
+
+${body}
+
+</details>
+`;
+}
+function createTestTitleFromAssertionResult({ ancestorTitles, title, }) {
+    if (!ancestorTitles)
+        return title;
+    return `${ancestorTitles.join(' > ')} > ${title}`;
+}
+const getFailureDetails = ({ testResults }) => {
+    if (!testResults ||
+        !testResults.some(({ message, status }) => message.length > 0 && status !== 'passed')) {
+        return '';
+    }
+    const wrapCode = (code) => `\`\`\`\n${code}\n\`\`\``;
+    const codeBlocks = testResults
+        .filter(({ status }) => status !== 'passed')
+        .flatMap(({ message, assertionResults }) => {
+        const stripped = (0, strip_ansi_1.default)(message);
+        if (stripped.trim().length === 0) {
+            return '';
+        }
+        const failures = assertionResults
+            ?.map((assertionResult) => {
+            const { failureDetails, title, ancestorTitles } = assertionResult;
+            if (failureDetails && failureDetails.length > 0) {
+                const [{ message: failureMessage }] = failureDetails;
+                const heading = createTestTitleFromAssertionResult({
+                    ancestorTitles,
+                    title,
+                });
+                return createMarkdownSpoiler({
+                    summary: heading,
+                    body: wrapCode(failureMessage),
+                });
+            }
+            return false;
+        })
+            .filter(Boolean);
+        return failures;
+    });
+    const markdown = createMarkdownSpoiler({
+        summary: 'Failed Tests',
+        body: codeBlocks.join('\n\n'),
+        tag: 'h3',
+    });
+    return `${markdown}\n`;
+};
+exports.getFailureDetails = getFailureDetails;
+function getFailedTestsReport(options) {
+    const { jestTestReportFile } = options;
+    if (!jestTestReportFile) {
+        return '';
+    }
+    const txtContent = (0, utils_1.getContentFile)(jestTestReportFile);
+    let parsedContent;
+    try {
+        parsedContent = JSON.parse(txtContent);
+    }
+    catch {
+        core.error(`Failed to parse ${jestTestReportFile} as JSON`);
+        return '';
+    }
+    return (0, exports.getFailureDetails)(parsedContent);
+}
+exports.getFailedTestsReport = getFailedTestsReport;
+
+
+/***/ }),
+
 /***/ 4822:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -541,6 +652,7 @@ const summary_1 = __nccwpck_require__(8608);
 const changed_files_1 = __nccwpck_require__(6503);
 const multi_files_1 = __nccwpck_require__(8796);
 const multi_junit_files_1 = __nccwpck_require__(441);
+const failed_tests_1 = __nccwpck_require__(4414);
 async function main() {
     try {
         const token = core.getInput('github-token', { required: true });
@@ -565,6 +677,9 @@ async function main() {
         });
         const coverageTitle = core.getInput('coverage-title', { required: false });
         const coverageFile = core.getInput('coverage-path', {
+            required: false,
+        });
+        const jestTestReportFile = core.getInput('jest-json-report-path', {
             required: false,
         });
         const coveragePathPrefix = core.getInput('coverage-path-prefix', {
@@ -606,6 +721,7 @@ async function main() {
             summaryTitle,
             junitTitle,
             junitFile,
+            jestTestReportFile,
             coverageTitle,
             coverageFile,
             coveragePathPrefix,
@@ -706,6 +822,10 @@ async function main() {
         }
         if (reportContent.junitReportHtml) {
             finalHtml += `\n\n${reportContent.junitReportHtml}`;
+        }
+        if (options.jestTestReportFile) {
+            const jestTestReport = (0, failed_tests_1.getFailedTestsReport)(options);
+            finalHtml += jestTestReport ? `\n\n${jestTestReport}` : '';
         }
         if (options.coverageFile) {
             const coverageReport = (0, coverage_1.getCoverageReport)(options);

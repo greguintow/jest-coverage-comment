@@ -6,11 +6,16 @@ import { getContentFile } from './utils'
 type SpoilerConfig = {
   body: string
   summary: string
+  tag?: string
 }
 
-function createMarkdownSpoiler({ body, summary }: SpoilerConfig): string {
+function createMarkdownSpoiler({
+  body,
+  summary,
+  tag = 'b',
+}: SpoilerConfig): string {
   return `
-<details><summary><b>${summary}</b></summary>
+<details><summary><${tag}>${summary}</${tag}></summary>
 <br/>
 
 ${body}
@@ -76,7 +81,13 @@ export const getFailureDetails = ({ testResults }: JsonReport): string => {
       return failures
     })
 
-  return `#### Failed Tests\n\n${codeBlocks.join('\n\n')}\n`
+  const markdown = createMarkdownSpoiler({
+    summary: 'Failed Tests',
+    body: codeBlocks.join('\n\n'),
+    tag: 'h3',
+  })
+
+  return `${markdown}\n`
 }
 
 export function getFailedTestsReport(options: Options): string {
