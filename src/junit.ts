@@ -22,21 +22,27 @@ export async function parseJunit(xmlContent: string): Promise<Junit | null> {
 
     const main = parsedJunit.testsuites['$']
     const testsuites = parsedJunit.testsuites.testsuite
-    const errors =
-      testsuites
-        ?.map((t: any) => Number(t['$'].errors))
-        .reduce((sum: number, a: number) => sum + a, 0) || 0
+    const errors: number = main.errors
+      ? Number(main.errors)
+      : testsuites
+          ?.map((t: any) => Number(t['$'].errors))
+          .reduce((sum: number, a: number) => sum + a, 0) || 0
 
-    const skipped =
+    const failures = Number(main.failures)
+    const skipped: number =
       testsuites
         ?.map((t: any) => Number(t['$'].skipped))
         .reduce((sum: number, a: number) => sum + a, 0) || 0
 
+    const totalTests = Number(main.tests)
+    const succeeded = totalTests - (errors + skipped + failures)
+
     return {
       skipped,
-      errors: Number(main.errors || errors),
-      failures: Number(main.failures),
-      tests: Number(main.tests),
+      errors,
+      failures,
+      tests: totalTests,
+      succeeded,
       time: Number(main.time),
     } as Junit
   } catch (error) {
@@ -89,15 +95,10 @@ export async function getJunitReport(options: Options): Promise<JunitReport> {
 
       if (parsedXml) {
         const junitHtml = junitToMarkdown(parsedXml, options)
-        const { skipped, errors, failures, tests, time } = parsedXml
 
         return {
+          ...parsedXml,
           junitHtml,
-          tests,
-          skipped,
-          failures,
-          errors,
-          time,
         }
       }
     }
@@ -110,6 +111,7 @@ export async function getJunitReport(options: Options): Promise<JunitReport> {
   return {
     junitHtml: '',
     tests: 0,
+    succeeded: 0,
     skipped: 0,
     failures: 0,
     errors: 0,

@@ -40,17 +40,13 @@ export function summaryToMarkdown(
   options: Options,
   withoutHeader = false
 ): string {
-  const { repository, commit, badgeTitle } = options
-  const { statements, functions, branches } = summary
-  const { color, coverage } = getCoverage(summary)
-  const readmeHref = `https://github.com/${repository}/blob/${commit}/README.md`
-  const badge = `<a href="${readmeHref}"><img alt="${badgeTitle}: ${coverage}%" src="https://img.shields.io/badge/${badgeTitle}-${coverage}%25-${color}.svg" /></a><br/>`
+  const { statements, functions, branches, lines } = summary
 
   const tableHeader =
     '| Lines | Statements | Branches | Functions |\n' +
     '| --- | --- | --- | --- |'
   const tableBody =
-    `| ${badge} |` +
+    `| ${lineSummaryToTd(lines)} |` +
     ` ${lineSummaryToTd(statements)} |` +
     ` ${lineSummaryToTd(branches)} |` +
     ` ${lineSummaryToTd(functions)} |`
@@ -78,7 +74,7 @@ export function getCoverage(
   const { lines } = summary
 
   const color = getCoverageColor(lines.pct)
-  const coverage = parseInt(lines.pct.toString())
+  const coverage = lines.pct
 
   return { color, coverage }
 }

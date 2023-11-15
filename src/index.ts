@@ -130,10 +130,6 @@ async function main(): Promise<void> {
       finalHtml += `# ${title}\n\n`
     }
 
-    if (!options.hideSummary) {
-      finalHtml += summaryHtml
-    }
-
     if (options.junitFile) {
       const junit = await getJunitReport(options)
       const { junitHtml, tests, skipped, failures, errors, time } = junit
@@ -156,6 +152,51 @@ async function main(): Promise<void> {
         core.setOutput('junitHtml', junitHtml)
         core.endGroup()
       }
+    }
+
+    if (multipleFiles?.length) {
+      finalHtml += `\n\n${getMultipleReport(options)}`
+    }
+
+    const reportContent = {
+      testReportHtml: '',
+      summaryHtml,
+      junitReportHtml: '',
+    }
+
+    if (multipleJunitFiles?.length) {
+      const junitReport = await getMultipleJunitReport(options)
+
+      if (junitReport) {
+        const { succeeded, failures } = junitReport
+
+        let testReportHtml = ''
+        if (failures) {
+          testReportHtml += `**❌ ${failures} failed**\n`
+        }
+        if (succeeded) {
+          testReportHtml += ` **✅ ${succeeded} passed**\n`
+        }
+        if (coverage) {
+          testReportHtml += `**📊 ${coverage}% coverage**\n`
+        }
+
+        reportContent.testReportHtml = testReportHtml
+
+        reportContent.junitReportHtml = `\n\n${junitReport.junitHtml}`
+      }
+    }
+
+    if (reportContent.testReportHtml) {
+      finalHtml += `\n\n${reportContent.testReportHtml}`
+    }
+
+    if (reportContent.summaryHtml) {
+      finalHtml += `\n\n${reportContent.summaryHtml}`
+    }
+
+    if (reportContent.junitReportHtml) {
+      finalHtml += `\n\n${reportContent.junitReportHtml}`
     }
 
     if (options.coverageFile) {
@@ -192,21 +233,12 @@ async function main(): Promise<void> {
       }
     }
 
-    if (multipleFiles?.length) {
-      finalHtml += `\n\n${getMultipleReport(options)}`
-    }
-
-    if (multipleJunitFiles?.length) {
-      const markdown = await getMultipleJunitReport(options)
-      finalHtml += markdown ? `\n\n${markdown}` : ''
-    }
-
     if (!finalHtml || options.hideComment) {
       core.info('Nothing to report')
       return
     }
 
-    const body = watermark + finalHtml
+    const body = finalHtml
     await createComment(options, body)
   } catch (error) {
     if (error instanceof Error) {

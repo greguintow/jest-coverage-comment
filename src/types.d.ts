@@ -68,6 +68,7 @@ export interface Junit {
   tests: number
   failures: number
   errors: number
+  succeeded: number
   time: number
 }
 

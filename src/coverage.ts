@@ -39,7 +39,7 @@ function getCoverage(
 
   const { lines, branch, funcs, stmts } = allFilesLine
   const color = getCoverageColor(lines)
-  const coverage = parseInt(lines.toString())
+  const coverage = lines
   const branches = parseInt(branch.toString())
   const functions = parseInt(funcs.toString())
   const statements = parseInt(stmts.toString())
