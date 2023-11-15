@@ -55,7 +55,7 @@ export async function getMultipleJunitReport(
         results.failures += failures
         results.errors += errors
         results.time += time
-        results.succeeded = succeeded
+        results.succeeded += succeeded
       }
     }
 
