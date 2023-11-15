@@ -1,8 +1,63 @@
 import * as core from '@actions/core'
 import { context, getOctokit } from '@actions/github'
+import { components } from '@octokit/openapi-types/types'
 import { Options } from './types.d'
 
 const MAX_COMMENT_LENGTH = 65536
+
+const REQUESTED_COMMENTS_PER_PAGE = 20
+
+type Github = ReturnType<typeof getOctokit>
+
+type Comment = components['schemas']['issue-comment']
+
+async function getExistingComments(
+  github: Github,
+  options: Options
+): Promise<Comment[]> {
+  let page = 0
+  let results: Comment[] = []
+  let response: { data: Comment[] }
+  do {
+    response = await github.rest.issues.listComments({
+      issue_number: context.issue.number,
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      per_page: REQUESTED_COMMENTS_PER_PAGE,
+      page,
+    })
+    results = results.concat(response.data)
+    page++
+  } while (response.data.length === REQUESTED_COMMENTS_PER_PAGE)
+
+  return results.filter(
+    (comment) =>
+      comment.user?.login === 'github-actions[bot]' &&
+      comment.body?.startsWith(options.watermark)
+  )
+}
+
+async function deleteOldComments(
+  github: Github,
+  options: Options
+): Promise<void> {
+  const existingComments = await getExistingComments(github, options)
+
+  for (const comment of existingComments) {
+    core.debug(`Deleting comment: ${comment.id}`)
+    try {
+      await github.rest.issues.deleteComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        comment_id: comment.id,
+      })
+    } catch (error) {
+      core.warning(
+        `Failed to delete comment: ${comment.id}. ${(error as Error).message}`
+      )
+    }
+  }
+}
 
 export async function createComment(
   options: Options,
@@ -58,6 +113,12 @@ export async function createComment(
       eventName === 'pull_request_target'
     ) {
       if (options.createNewComment) {
+        if (options.deleteOldComments) {
+          core.info('Deleting old comments')
+
+          await deleteOldComments(octokit, options)
+        }
+
         core.info('Creating a new comment')
 
         await octokit.rest.issues.createComment({

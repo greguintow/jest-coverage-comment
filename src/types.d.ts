@@ -19,6 +19,7 @@ export interface Options {
   removeLinksToFiles?: boolean
   removeLinksToLines?: boolean
   createNewComment?: boolean
+  deleteOldComments?: boolean
   hideComment?: boolean
   reportOnlyChangedFiles?: boolean
   changedFiles?: ChangedFiles | null

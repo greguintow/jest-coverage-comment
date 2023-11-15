@@ -41,6 +41,9 @@ async function main(): Promise<void> {
     const createNewComment = core.getBooleanInput('create-new-comment', {
       required: false,
     })
+    const deleteOldComments = core.getBooleanInput('delete-old-comments', {
+      required: false,
+    })
     const hideComment = core.getBooleanInput('hide-comment', {
       required: false,
     })
@@ -86,6 +89,7 @@ async function main(): Promise<void> {
       removeLinksToFiles,
       removeLinksToLines,
       createNewComment,
+      deleteOldComments,
       hideComment,
       reportOnlyChangedFiles,
       multipleFiles,
@@ -238,7 +242,7 @@ async function main(): Promise<void> {
       return
     }
 
-    const body = finalHtml
+    const body = watermark + finalHtml
     await createComment(options, body)
   } catch (error) {
     if (error instanceof Error) {
