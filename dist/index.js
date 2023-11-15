@@ -549,6 +549,12 @@ ${body}
 </details>
 `;
 }
+function getCurrentBranch() {
+    if (github_1.context.payload.pull_request) {
+        return github_1.context.payload.pull_request.head.ref;
+    }
+    return github_1.context.ref.replace('refs/heads/', '');
+}
 function createTestTitleFromAssertionResult({ ancestorTitles, title, }) {
     if (!ancestorTitles)
         return title;
@@ -565,7 +571,7 @@ function getCodeSourceLink(failureMessage) {
         .slice(0, -1)
         .join(':')
         .split(':');
-    const branchName = github_1.context.ref.replace('refs/heads/', '');
+    const branchName = getCurrentBranch();
     const githubLink = `https://github.com/${github_1.context.repo.owner}/${github_1.context.repo.repo}/blob/${branchName}/${filePath}#L${line}`;
     return `[:octocat: Go to source code](${githubLink})`;
 }

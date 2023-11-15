@@ -25,6 +25,14 @@ ${body}
 `
 }
 
+function getCurrentBranch(): string {
+  if (context.payload.pull_request) {
+    return context.payload.pull_request.head.ref
+  }
+
+  return context.ref.replace('refs/heads/', '')
+}
+
 function createTestTitleFromAssertionResult({
   ancestorTitles,
   title,
@@ -50,7 +58,7 @@ function getCodeSourceLink(failureMessage: string): string {
     .join(':')
     .split(':')
 
-  const branchName = context.ref.replace('refs/heads/', '')
+  const branchName = getCurrentBranch()
 
   const githubLink = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${branchName}/${filePath}#L${line}`
 
