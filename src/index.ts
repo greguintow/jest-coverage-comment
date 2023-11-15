@@ -8,6 +8,7 @@ import { getSummaryReport } from './summary'
 import { getChangedFiles } from './changed-files'
 import { getMultipleReport } from './multi-files'
 import { getMultipleJunitReport } from './multi-junit-files'
+import { getFailedTestsReport } from './failed-tests'
 
 async function main(): Promise<void> {
   try {
@@ -33,6 +34,9 @@ async function main(): Promise<void> {
     })
     const coverageTitle = core.getInput('coverage-title', { required: false })
     const coverageFile = core.getInput('coverage-path', {
+      required: false,
+    })
+    const jestTestReportFile = core.getInput('jest-json-report-path', {
       required: false,
     })
     const coveragePathPrefix = core.getInput('coverage-path-prefix', {
@@ -82,6 +86,7 @@ async function main(): Promise<void> {
       summaryTitle,
       junitTitle,
       junitFile,
+      jestTestReportFile,
       coverageTitle,
       coverageFile,
       coveragePathPrefix,
@@ -201,6 +206,12 @@ async function main(): Promise<void> {
 
     if (reportContent.junitReportHtml) {
       finalHtml += `\n\n${reportContent.junitReportHtml}`
+    }
+
+    if (options.jestTestReportFile) {
+      const jestTestReport = getFailedTestsReport(options)
+
+      finalHtml += jestTestReport ? `\n\n${jestTestReport}` : ''
     }
 
     if (options.coverageFile) {

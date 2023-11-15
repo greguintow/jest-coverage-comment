@@ -20,6 +20,10 @@ inputs:
     default: './coverage/coverage-summary.json'
     required: false
 
+  jest-json-report-path:
+    description: 'The location of the jest-json-report of Jest. This would add the failed tests results in the comment.'
+    required: false
+
   summary-title:
     description: 'Title for the coverage summary'
     default: ''
@@ -52,6 +56,11 @@ inputs:
 
   create-new-comment:
     description: 'When false, will update the same comment, otherwise will publish new comment on each run'
+    default: 'false'
+    required: false
+
+  delete-old-comments:
+    description: 'create-new-comment option needs to be true first, when this option is true, it will delete the old comments'
     default: 'false'
     required: false
 
