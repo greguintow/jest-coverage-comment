@@ -536,12 +536,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getFailedTestsReport = exports.getFailureDetails = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const github_1 = __nccwpck_require__(5438);
 const strip_ansi_1 = __importDefault(__nccwpck_require__(5591));
 const utils_1 = __nccwpck_require__(918);
 function createMarkdownSpoiler({ body, summary, tag = 'b', }) {
     return `
 <details><summary><${tag}>${summary}</${tag}></summary>
-<br/>
+${tag.startsWith('h') ? '' : '<br/>'}
 
 ${body}
 
@@ -552,6 +553,21 @@ function createTestTitleFromAssertionResult({ ancestorTitles, title, }) {
     if (!ancestorTitles)
         return title;
     return `${ancestorTitles.join(' > ')} > ${title}`;
+}
+function getCodeSourceLink(failureMessage) {
+    const lastSentence = failureMessage.split('\n').at(-1)?.trim();
+    if (!lastSentence?.startsWith('at Object.<anonymous>'))
+        return '';
+    const [filePath, line] = lastSentence
+        .split('(')[1]
+        .split(')')[0]
+        .split(':')
+        .slice(0, -1)
+        .join(':')
+        .split(':');
+    const branchName = github_1.context.ref.replace('refs/heads/', '');
+    const githubLink = `https://github.com/${github_1.context.repo.owner}/${github_1.context.repo.repo}/blob/${branchName}/${filePath}#L${line}`;
+    return `[:octocat: Go to source code](${githubLink})`;
 }
 const getFailureDetails = ({ testResults }) => {
     if (!testResults ||
@@ -575,9 +591,15 @@ const getFailureDetails = ({ testResults }) => {
                     ancestorTitles,
                     title,
                 });
+                const formattedMessage = (0, strip_ansi_1.default)(failureMessage);
+                const sourceCodeLink = getCodeSourceLink(formattedMessage);
+                let body = wrapCode(formattedMessage);
+                if (sourceCodeLink) {
+                    body += `\n\n${sourceCodeLink}`;
+                }
                 return createMarkdownSpoiler({
                     summary: heading,
-                    body: wrapCode(failureMessage),
+                    body,
                 });
             }
             return false;
@@ -586,7 +608,7 @@ const getFailureDetails = ({ testResults }) => {
         return failures;
     });
     const markdown = createMarkdownSpoiler({
-        summary: 'Failed Tests',
+        summary: `Failed Tests - ${codeBlocks.length}`,
         body: codeBlocks.join('\n\n'),
         tag: 'h3',
     });

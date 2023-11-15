@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import { context } from '@actions/github'
 import stripAnsi from 'strip-ansi'
 import { JsonReport, Options } from './types'
 import { getContentFile } from './utils'
@@ -16,7 +17,7 @@ function createMarkdownSpoiler({
 }: SpoilerConfig): string {
   return `
 <details><summary><${tag}>${summary}</${tag}></summary>
-<br/>
+${tag.startsWith('h') ? '' : '<br/>'}
 
 ${body}
 
@@ -34,6 +35,26 @@ function createTestTitleFromAssertionResult({
   if (!ancestorTitles) return title
 
   return `${ancestorTitles.join(' > ')} > ${title}`
+}
+
+function getCodeSourceLink(failureMessage: string): string {
+  const lastSentence = failureMessage.split('\n').at(-1)?.trim()
+
+  if (!lastSentence?.startsWith('at Object.<anonymous>')) return ''
+
+  const [filePath, line] = lastSentence
+    .split('(')[1]
+    .split(')')[0]
+    .split(':')
+    .slice(0, -1)
+    .join(':')
+    .split(':')
+
+  const branchName = context.ref.replace('refs/heads/', '')
+
+  const githubLink = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${branchName}/${filePath}#L${line}`
+
+  return `[:octocat: Go to source code](${githubLink})`
 }
 
 export const getFailureDetails = ({ testResults }: JsonReport): string => {
@@ -68,9 +89,18 @@ export const getFailureDetails = ({ testResults }: JsonReport): string => {
               title,
             })
 
+            const formattedMessage = stripAnsi(failureMessage)
+            const sourceCodeLink = getCodeSourceLink(formattedMessage)
+
+            let body = wrapCode(formattedMessage)
+
+            if (sourceCodeLink) {
+              body += `\n\n${sourceCodeLink}`
+            }
+
             return createMarkdownSpoiler({
               summary: heading,
-              body: wrapCode(failureMessage),
+              body,
             })
           }
 
@@ -82,7 +112,7 @@ export const getFailureDetails = ({ testResults }: JsonReport): string => {
     })
 
   const markdown = createMarkdownSpoiler({
-    summary: 'Failed Tests',
+    summary: `Failed Tests - ${codeBlocks.length}`,
     body: codeBlocks.join('\n\n'),
     tag: 'h3',
   })
