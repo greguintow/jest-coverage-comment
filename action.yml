@@ -1,4 +1,4 @@
-name: 'Jest Coverage Comment'
+name: 'Jest Test Report'
 description: 'Comments a pull request or commit with the Jest code coverage badge, full report and tests summary'
 author: 'Misha Kav <misha.kav@gmail.com>'
 branding:
