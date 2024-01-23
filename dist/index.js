@@ -544,7 +544,7 @@ function createMarkdownSpoiler({ body, summary, tag = 'b', }) {
 <details><summary><${tag}>${summary}</${tag}></summary>
 ${tag.startsWith('h') ? '' : '<br/>'}
 
-${body}
+${body || ''}
 
 </details>
 `;
@@ -590,14 +590,16 @@ const getFailureDetails = ({ testResults }) => {
         }
         const failures = assertionResults
             ?.map((assertionResult) => {
-            const { failureDetails, title, ancestorTitles } = assertionResult;
-            if (failureDetails && failureDetails.length > 0) {
-                const [{ message: failureMessage }] = failureDetails;
+            const { failureDetails, failureMessages, title, ancestorTitles } = assertionResult;
+            const hasFailures = (failureMessages && failureMessages.length > 0) ||
+                (failureDetails && failureDetails.length > 0);
+            if (hasFailures) {
+                const failureMessage = failureMessages?.[0] || failureDetails?.[0]?.message;
                 const heading = createTestTitleFromAssertionResult({
                     ancestorTitles,
                     title,
                 });
-                const formattedMessage = (0, strip_ansi_1.default)(failureMessage);
+                const formattedMessage = failureMessage ? (0, strip_ansi_1.default)(failureMessage) : '';
                 const sourceCodeLink = formattedMessage && getCodeSourceLink(formattedMessage);
                 let body = formattedMessage && wrapCode(formattedMessage);
                 if (sourceCodeLink) {

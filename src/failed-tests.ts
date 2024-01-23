@@ -19,7 +19,7 @@ function createMarkdownSpoiler({
 <details><summary><${tag}>${summary}</${tag}></summary>
 ${tag.startsWith('h') ? '' : '<br/>'}
 
-${body}
+${body || ''}
 
 </details>
 `
@@ -87,17 +87,23 @@ export const getFailureDetails = ({ testResults }: JsonReport): string => {
 
       const failures = assertionResults
         ?.map((assertionResult) => {
-          const { failureDetails, title, ancestorTitles } = assertionResult
+          const { failureDetails, failureMessages, title, ancestorTitles } =
+            assertionResult
 
-          if (failureDetails && failureDetails.length > 0) {
-            const [{ message: failureMessage }] = failureDetails
+          const hasFailures =
+            (failureMessages && failureMessages.length > 0) ||
+            (failureDetails && failureDetails.length > 0)
+
+          if (hasFailures) {
+            const failureMessage =
+              failureMessages?.[0] || failureDetails?.[0]?.message
 
             const heading = createTestTitleFromAssertionResult({
               ancestorTitles,
               title,
             })
 
-            const formattedMessage = stripAnsi(failureMessage)
+            const formattedMessage = failureMessage ? stripAnsi(failureMessage) : ''
             const sourceCodeLink =
               formattedMessage && getCodeSourceLink(formattedMessage)
 
