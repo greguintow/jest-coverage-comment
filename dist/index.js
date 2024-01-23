@@ -598,8 +598,8 @@ const getFailureDetails = ({ testResults }) => {
                     title,
                 });
                 const formattedMessage = (0, strip_ansi_1.default)(failureMessage);
-                const sourceCodeLink = getCodeSourceLink(formattedMessage);
-                let body = wrapCode(formattedMessage);
+                const sourceCodeLink = formattedMessage && getCodeSourceLink(formattedMessage);
+                let body = formattedMessage && wrapCode(formattedMessage);
                 if (sourceCodeLink) {
                     body += `\n\n${sourceCodeLink}`;
                 }
@@ -1252,7 +1252,7 @@ function isFolder(line) {
 }
 exports.isFolder = isFolder;
 function parseCoverage(content) {
-    const arr = (0, strip_ansi_1.default)(content).split('\n');
+    const arr = (0, strip_ansi_1.default)(content)?.split('\n') || [];
     const result = [];
     const folders = [];
     const startFrom = arr.findIndex((l) => l.includes(constants_1.BUNCH_OF_DASHES));
