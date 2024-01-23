@@ -48,7 +48,7 @@ export function isFolder(line: CoverageLine): boolean {
 }
 
 export function parseCoverage(content: string): CoverageLine[] {
-  const arr = stripAnsi(content).split('\n')
+  const arr = stripAnsi(content)?.split('\n') || []
   const result: CoverageLine[] = []
   const folders = []
   const startFrom = arr.findIndex((l) => l.includes(BUNCH_OF_DASHES))

@@ -98,9 +98,10 @@ export const getFailureDetails = ({ testResults }: JsonReport): string => {
             })
 
             const formattedMessage = stripAnsi(failureMessage)
-            const sourceCodeLink = getCodeSourceLink(formattedMessage)
+            const sourceCodeLink =
+              formattedMessage && getCodeSourceLink(formattedMessage)
 
-            let body = wrapCode(formattedMessage)
+            let body = formattedMessage && wrapCode(formattedMessage)
 
             if (sourceCodeLink) {
               body += `\n\n${sourceCodeLink}`
