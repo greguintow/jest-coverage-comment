@@ -20,8 +20,8 @@ I've made this action after I saw that similar action for python that runs `pyte
 You can add this action to your GitHub workflow for Ubuntu runners (e.g. `runs-on: ubuntu-latest`) as follows:
 
 ```yaml
-- name: Jest Coverage Comment
-  uses: MishaKav/jest-coverage-comment@main
+- name: Test Report
+  uses: greguintow/jest-test-report@main
 ```
 
 ## Inputs
@@ -35,6 +35,7 @@ You can add this action to your GitHub workflow for Ubuntu runners (e.g. `runs-o
 | `badge-title`               |          | `Coverage`                         | Title for the badge icon                                                                                                                                                 |
 | `hide-summary`              |          | false                              | Hide coverage summary report                                                                                                                                             |
 | `create-new-comment`        |          | false                              | When false, will update the same comment, otherwise will publish new comment on each run.                                                                                |
+| `delete-old-comments`       |          | false                              | create-new-comment option needs to be true first, when this option is true, it will delete the old comments run.                                                         |
 | `hide-comment`              |          | false                              | Hide the whole comment (use when you need only the `output`). Useful to auto-update badges in README file.                                                               |
 | `remove-links-to-files`     |          | false                              | Remove links to files (useful when summary-report is too big)                                                                                                            |
 | `remove-links-to-lines`     |          | false                              | Remove links to lines (useful when summary-report is too big)                                                                                                            |
