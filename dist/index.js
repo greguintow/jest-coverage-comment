@@ -797,9 +797,14 @@ async function main() {
         if (title) {
             finalHtml += `# ${title}\n\n`;
         }
+        const reportContent = {
+            testReportHtml: '',
+            summaryHtml,
+            junitReportHtml: '',
+        };
         if (options.junitFile) {
             const junit = await (0, junit_1.getJunitReport)(options);
-            const { junitHtml, tests, skipped, failures, errors, time } = junit;
+            const { junitHtml, tests, skipped, failures, errors, time, succeeded } = junit;
             finalHtml += junitHtml ? `\n\n${junitHtml}` : '';
             if (junitHtml) {
                 core.startGroup(options.junitTitle || 'Junit');
@@ -816,16 +821,22 @@ async function main() {
                 core.setOutput('time', time);
                 core.setOutput('junitHtml', junitHtml);
                 core.endGroup();
+                let testReportHtml = '';
+                if (failures) {
+                    testReportHtml += `**❌ ${failures} failed**\n`;
+                }
+                if (succeeded) {
+                    testReportHtml += ` **✅ ${succeeded} passed**\n`;
+                }
+                if (coverage) {
+                    testReportHtml += `**📊 ${coverage}% coverage**\n`;
+                }
+                reportContent.testReportHtml = testReportHtml;
             }
         }
         if (multipleFiles?.length) {
             finalHtml += `\n\n${(0, multi_files_1.getMultipleReport)(options)}`;
         }
-        const reportContent = {
-            testReportHtml: '',
-            summaryHtml,
-            junitReportHtml: '',
-        };
         if (multipleJunitFiles?.length) {
             const junitReport = await (0, multi_junit_files_1.getMultipleJunitReport)(options);
             if (junitReport) {

@@ -139,9 +139,16 @@ async function main(): Promise<void> {
       finalHtml += `# ${title}\n\n`
     }
 
+    const reportContent = {
+      testReportHtml: '',
+      summaryHtml,
+      junitReportHtml: '',
+    }
+
     if (options.junitFile) {
       const junit = await getJunitReport(options)
-      const { junitHtml, tests, skipped, failures, errors, time } = junit
+      const { junitHtml, tests, skipped, failures, errors, time, succeeded } =
+        junit
       finalHtml += junitHtml ? `\n\n${junitHtml}` : ''
 
       if (junitHtml) {
@@ -160,17 +167,27 @@ async function main(): Promise<void> {
         core.setOutput('time', time)
         core.setOutput('junitHtml', junitHtml)
         core.endGroup()
+
+        let testReportHtml = ''
+
+        if (failures) {
+          testReportHtml += `**❌ ${failures} failed**\n`
+        }
+
+        if (succeeded) {
+          testReportHtml += ` **✅ ${succeeded} passed**\n`
+        }
+
+        if (coverage) {
+          testReportHtml += `**📊 ${coverage}% coverage**\n`
+        }
+
+        reportContent.testReportHtml = testReportHtml
       }
     }
 
     if (multipleFiles?.length) {
       finalHtml += `\n\n${getMultipleReport(options)}`
-    }
-
-    const reportContent = {
-      testReportHtml: '',
-      summaryHtml,
-      junitReportHtml: '',
     }
 
     if (multipleJunitFiles?.length) {
