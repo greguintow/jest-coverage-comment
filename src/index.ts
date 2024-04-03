@@ -149,9 +149,10 @@ async function main(): Promise<void> {
       const junit = await getJunitReport(options)
       const { junitHtml, tests, skipped, failures, errors, time, succeeded } =
         junit
-      finalHtml += junitHtml ? `\n\n${junitHtml}` : ''
 
       if (junitHtml) {
+        reportContent.junitReportHtml = junitHtml
+
         core.startGroup(options.junitTitle || 'Junit')
         core.info(`tests: ${tests}`)
         core.info(`skipped: ${skipped}`)

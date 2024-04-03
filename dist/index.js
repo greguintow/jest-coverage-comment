@@ -805,8 +805,8 @@ async function main() {
         if (options.junitFile) {
             const junit = await (0, junit_1.getJunitReport)(options);
             const { junitHtml, tests, skipped, failures, errors, time, succeeded } = junit;
-            finalHtml += junitHtml ? `\n\n${junitHtml}` : '';
             if (junitHtml) {
+                reportContent.junitReportHtml = junitHtml;
                 core.startGroup(options.junitTitle || 'Junit');
                 core.info(`tests: ${tests}`);
                 core.info(`skipped: ${skipped}`);
