@@ -575,46 +575,38 @@ function getCodeSourceLink(failureMessage) {
     const githubLink = `https://github.com/${github_1.context.repo.owner}/${github_1.context.repo.repo}/blob/${branchName}/${filePath}#L${line}`;
     return `[:octocat: Go to source code](${githubLink})`;
 }
+const wrapCode = (code) => `\`\`\`\n${code}\n\`\`\``;
 const getFailureDetails = ({ testResults }) => {
-    if (!testResults ||
-        !testResults.some(({ message, status }) => message.length > 0 && status !== 'passed')) {
-        return '';
-    }
-    const wrapCode = (code) => `\`\`\`\n${code}\n\`\`\``;
     const codeBlocks = testResults
-        .filter(({ status }) => status !== 'passed')
-        .flatMap(({ message, assertionResults }) => {
-        const stripped = (0, strip_ansi_1.default)(message);
-        if (stripped.trim().length === 0) {
-            return '';
-        }
-        const failures = assertionResults
-            ?.map((assertionResult) => {
+        ?.filter(({ status }) => status !== 'passed')
+        .flatMap(({ assertionResults }) => {
+        const failures = assertionResults?.map((assertionResult) => {
             const { failureDetails, failureMessages, title, ancestorTitles } = assertionResult;
             const hasFailures = (failureMessages && failureMessages.length > 0) ||
                 (failureDetails && failureDetails.length > 0);
-            if (hasFailures) {
-                const failureMessage = failureMessages?.[0] || failureDetails?.[0]?.message;
-                const heading = createTestTitleFromAssertionResult({
-                    ancestorTitles,
-                    title,
-                });
-                const formattedMessage = failureMessage ? (0, strip_ansi_1.default)(failureMessage) : '';
-                const sourceCodeLink = formattedMessage && getCodeSourceLink(formattedMessage);
-                let body = formattedMessage && wrapCode(formattedMessage);
-                if (sourceCodeLink) {
-                    body += `\n\n${sourceCodeLink}`;
-                }
-                return createMarkdownSpoiler({
-                    summary: heading,
-                    body,
-                });
+            if (!hasFailures)
+                return false;
+            const failureMessage = failureMessages?.[0] || failureDetails?.[0]?.message;
+            const heading = createTestTitleFromAssertionResult({
+                ancestorTitles,
+                title,
+            });
+            const formattedMessage = failureMessage ? (0, strip_ansi_1.default)(failureMessage) : '';
+            const sourceCodeLink = formattedMessage && getCodeSourceLink(formattedMessage);
+            let body = formattedMessage && wrapCode(formattedMessage);
+            if (sourceCodeLink) {
+                body += `\n\n${sourceCodeLink}`;
             }
-            return false;
-        })
-            .filter(Boolean);
+            return createMarkdownSpoiler({
+                summary: heading,
+                body,
+            });
+        });
         return failures;
-    });
+    })
+        .filter(Boolean);
+    if (!codeBlocks || codeBlocks.length === 0)
+        return '';
     const markdown = createMarkdownSpoiler({
         summary: `Failed Tests - ${codeBlocks.length}`,
         body: codeBlocks.join('\n\n'),

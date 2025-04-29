@@ -65,66 +65,51 @@ function getCodeSourceLink(failureMessage: string): string {
   return `[:octocat: Go to source code](${githubLink})`
 }
 
+const wrapCode = (code: string): string => `\`\`\`\n${code}\n\`\`\``
+
 export const getFailureDetails = ({ testResults }: JsonReport): string => {
-  if (
-    !testResults ||
-    !testResults.some(
-      ({ message, status }) => message.length > 0 && status !== 'passed'
-    )
-  ) {
-    return ''
-  }
-
-  const wrapCode = (code: string): string => `\`\`\`\n${code}\n\`\`\``
-
   const codeBlocks = testResults
-    .filter(({ status }) => status !== 'passed')
-    .flatMap(({ message, assertionResults }) => {
-      const stripped = stripAnsi(message)
-      if (stripped.trim().length === 0) {
-        return ''
-      }
+    ?.filter(({ status }) => status !== 'passed')
+    .flatMap(({ assertionResults }) => {
+      const failures = assertionResults?.map((assertionResult) => {
+        const { failureDetails, failureMessages, title, ancestorTitles } =
+          assertionResult
 
-      const failures = assertionResults
-        ?.map((assertionResult) => {
-          const { failureDetails, failureMessages, title, ancestorTitles } =
-            assertionResult
+        const hasFailures =
+          (failureMessages && failureMessages.length > 0) ||
+          (failureDetails && failureDetails.length > 0)
 
-          const hasFailures =
-            (failureMessages && failureMessages.length > 0) ||
-            (failureDetails && failureDetails.length > 0)
+        if (!hasFailures) return false
 
-          if (hasFailures) {
-            const failureMessage =
-              failureMessages?.[0] || failureDetails?.[0]?.message
+        const failureMessage =
+          failureMessages?.[0] || failureDetails?.[0]?.message
 
-            const heading = createTestTitleFromAssertionResult({
-              ancestorTitles,
-              title,
-            })
-
-            const formattedMessage = failureMessage ? stripAnsi(failureMessage) : ''
-            const sourceCodeLink =
-              formattedMessage && getCodeSourceLink(formattedMessage)
-
-            let body = formattedMessage && wrapCode(formattedMessage)
-
-            if (sourceCodeLink) {
-              body += `\n\n${sourceCodeLink}`
-            }
-
-            return createMarkdownSpoiler({
-              summary: heading,
-              body,
-            })
-          }
-
-          return false
+        const heading = createTestTitleFromAssertionResult({
+          ancestorTitles,
+          title,
         })
-        .filter(Boolean)
+
+        const formattedMessage = failureMessage ? stripAnsi(failureMessage) : ''
+        const sourceCodeLink =
+          formattedMessage && getCodeSourceLink(formattedMessage)
+
+        let body = formattedMessage && wrapCode(formattedMessage)
+
+        if (sourceCodeLink) {
+          body += `\n\n${sourceCodeLink}`
+        }
+
+        return createMarkdownSpoiler({
+          summary: heading,
+          body,
+        })
+      })
 
       return failures
     })
+    .filter(Boolean)
+
+  if (!codeBlocks || codeBlocks.length === 0) return ''
 
   const markdown = createMarkdownSpoiler({
     summary: `Failed Tests - ${codeBlocks.length}`,
